@@ -300,7 +300,7 @@ function updatePreview() {
             <!-- Header -->
             <div class="invoice-header">
                 <div class="invoice-logo-section">
-                    ${invoiceData.company.logo ? `<img src="${invoiceData.company.logo}" alt="Logo" class="invoice-logo">` : '<div style="width: 150px; height: 100px; background: #f0f4f8; display[...]
+                    ${invoiceData.company.logo ? `<img src="${invoiceData.company.logo}" alt="Logo" class="invoice-logo">` : `<div class="invoice-logo-placeholder" style="width:150px;height:100px;background:#f0f4f8;border:1px solid #e0e6ea;display:flex;align-items:center;justify-content:center;color:#888;">Logo</div>`}
                     <div class="company-details">
                         <p><strong>${invoiceData.company.name || 'Company Name'}</strong></p>
                         ${invoiceData.company.address ? `<p>${invoiceData.company.address}</p>` : ''}
