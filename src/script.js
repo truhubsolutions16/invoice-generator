@@ -300,7 +300,7 @@ function updatePreview() {
             <!-- Header -->
             <div class="invoice-header">
                 <div class="invoice-logo-section">
-                    ${invoiceData.company.logo ? `<img src="${invoiceData.company.logo}" alt="Logo" class="invoice-logo">` : '<div style="width: 150px; height: 100px; background: #f0f4f8; display: flex; align-items: center; justify-content: center; border-radius: 4px;">Logo</div>'}
+                    ${invoiceData.company.logo ? `<img src="${invoiceData.company.logo}" alt="Logo" class="invoice-logo">` : '<div style="width: 150px; height: 100px; background: #f0f4f8; display[...]
                     <div class="company-details">
                         <p><strong>${invoiceData.company.name || 'Company Name'}</strong></p>
                         ${invoiceData.company.address ? `<p>${invoiceData.company.address}</p>` : ''}
@@ -442,23 +442,56 @@ function updatePreview() {
     form.invoicePreview.innerHTML = html;
 }
 
-// Generate PDF
-function generatePDF() {
+// Generate PDF (robust html2canvas + jsPDF with fallback)
+async function generatePDF() {
     const invoiceElement = document.querySelector('.invoice');
     if (!invoiceElement) {
         alert('Please fill in the invoice details first.');
         return;
     }
 
-    const opt = {
-        margin: 10,
-        filename: `Invoice_${invoiceData.invoice.number || 'document'}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { format: 'a4', orientation: 'portrait' }
-    };
+    const btn = form.generatePdfBtn;
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Generating…';
 
-    html2pdf().set(opt).from(invoiceElement).save();
+    try {
+        const canvas = await html2canvas(invoiceElement, {
+            scale: 2,
+            useCORS: true,
+            allowTaint: false,
+            logging: false
+        });
+
+        const imgData = canvas.toDataURL('image/jpeg', 0.98);
+        const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
+        const pdfWidth = 210; // A4 width in mm
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save(`Invoice_${invoiceData.invoice.number || 'document'}.pdf`);
+    } catch (err) {
+        console.error('PDF generation failed:', err);
+        if (typeof html2pdf === 'function') {
+            try {
+                html2pdf().set({
+                    margin: 10,
+                    filename: `Invoice_${invoiceData.invoice.number || 'document'}.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true },
+                    jsPDF: { format: 'a4', orientation: 'portrait' }
+                }).from(invoiceElement).save();
+            } catch (err2) {
+                console.error('Fallback html2pdf() also failed:', err2);
+                alert('Failed to generate PDF. See console for details.');
+            }
+        } else {
+            alert('Failed to generate PDF. See console for details.');
+        }
+    } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+    }
 }
 
 // Print Invoice
