@@ -1,10 +1,8 @@
-const { contextBridge } = require('electron');
-const fs = require('fs');
-const path = require('path');
+const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  // File operations
   readFile: (filePath) => {
+    const fs = require('fs');
     try {
       return fs.readFileSync(filePath, 'utf-8');
     } catch (error) {
@@ -13,6 +11,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }
   },
   writeFile: (filePath, content) => {
+    const fs = require('fs');
     try {
       fs.writeFileSync(filePath, content, 'utf-8');
       return true;
@@ -21,15 +20,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return false;
     }
   },
-  // File dialog
-  selectFile: async (extensions) => {
-    const { dialog } = require('electron').remote;
-    const result = await dialog.showOpenDialog({
-      properties: ['openFile'],
-      filters: [
-        { name: 'Images', extensions: extensions || ['jpg', 'jpeg', 'png', 'gif'] }
-      ]
-    });
-    return result.filePaths[0] || null;
+  selectFile: async (options) => {
+    // options example: { properties: ['openFile'], filters: [{ name: 'Images', extensions: ['png','jpg'] }] }
+    const filePaths = await ipcRenderer.invoke('dialog:openFile', options);
+    return filePaths && filePaths.length ? filePaths[0] : null;
   }
 });
